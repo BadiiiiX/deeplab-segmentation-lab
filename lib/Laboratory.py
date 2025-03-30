@@ -1,5 +1,4 @@
-import torch
-from torch import Tensor
+from torch import Tensor, hub, no_grad, zeros_like, bool as torch_bool
 from torchvision.models.segmentation import DeepLabV3_ResNet101_Weights
 from torchvision import transforms
 import matplotlib.pyplot as plt
@@ -30,7 +29,7 @@ class Laboratory:
         """
         Loads the pretrained model from Torch Hub and sets it to evaluation mode.
         """
-        self.model = torch.hub.load(self.repo, self.model_name, weights=self.weights)
+        self.model = hub.load(self.repo, self.model_name, weights=self.weights)
         self.model.eval()
 
     def show_categories(self) -> None:
@@ -94,7 +93,7 @@ class Laboratory:
         """
         Runs the segmentation model on the loaded image and stores predictions.
         """
-        with torch.no_grad():
+        with no_grad():
             output = self.model(self._manage_image())['out'][0]
         self.base_predication = output.argmax(0)
         self.prediction = self.base_predication.clone()
@@ -103,7 +102,7 @@ class Laboratory:
         """
         Applies the active class filters to the prediction mask.
         """
-        mask = torch.zeros_like(self.base_predication, dtype=torch.bool)
+        mask = zeros_like(self.base_predication, dtype=torch_bool)
 
         if self.filters:
             for class_id in self.filters:
@@ -122,7 +121,7 @@ class Laboratory:
         fig = plt.figure(figsize=(6, 6), dpi=100)
         ax = fig.add_axes([0, 0, 1, 1])
         ax.axis('off')
-        ax.imshow(self.prediction.numpy())
+        ax.imshow(self.prediction.numpy(), cmap='nipy_spectral')
         plt.show()
 
     def load(self) -> None:
@@ -132,3 +131,15 @@ class Laboratory:
         self._infer()
         self._process_filters()
         self._show_image()
+
+    def load_in_array(self):
+        """
+        Performs the full pipeline: inference, filter application, and array return.
+        """
+        self._infer()
+        self._process_filters()
+        to_return = self.prediction.clone()
+        to_return[to_return != 255] = 1
+        to_return[to_return == 255] = 0
+
+        return to_return.numpy().tolist()
