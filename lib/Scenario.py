@@ -1,12 +1,18 @@
 from os import path, listdir
 from typing import List, Any
 
+import re
+
 import numpy as np
 from PIL import Image
 from numpy import ndarray, dtype
 
 from lib.Laboratory import Laboratory
 
+
+def sort_list_dir(filename):
+    numbers = re.findall(r'\d+', filename)
+    return int(numbers[0]) if numbers else -1
 
 class Scenario:
     """
@@ -135,9 +141,8 @@ class Scenario:
 
         return {
             "id": number,
-            "image": image_data,
-            "radio": radio_data,
-            "laboratory": laboratory_cropped,
+            "radios": radio_data,
+            "predictions": laboratory,
         }
 
     def _load_dataset(self):
@@ -155,7 +160,9 @@ class Scenario:
         if not path.exists(camera_dir):
             raise Exception("Missing camera directory in scenario path.")
 
-        for c_path in listdir(camera_dir):
+        image_list = sorted(listdir(camera_dir), key=sort_list_dir)
+
+        for c_path in image_list:
             print(f"Loading image: {c_path}...")
             data = self._get_data_from_image_number(get_number_from_image(c_path))
             self.result.append(data)
@@ -167,8 +174,8 @@ class Scenario:
         Args:
             out_path (str): Destination path for the output .npz file.
         """
-        masks = [entry["masks"] for entry in self.result]
-        radios = [entry["radio"] for entry in self.result]
+        masks = [entry["predictions"] for entry in self.result]
+        radios = [np.rot90(entry["radios"], k=1) for entry in self.result]
         ids = [entry["id"] for entry in self.result]
 
         np.savez_compressed(out_path, ids=ids, masks=masks, radios=radios)

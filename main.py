@@ -61,4 +61,5 @@ def load_numpy_dataset(dataset_name="result_10"):
 
 if __name__ == "__main__":
     # You can call one of the functions here for quick testing
-    pass
+    save_scenario()
+    #show_image("./scenarios/10/camera/image_16.jpg")
